@@ -8,9 +8,10 @@ A mobile-friendly text journal: write free-form entries, search past entries by 
 - **app** — Node.js/Express API
 - **db** — PostgreSQL
 
-## Running
+## Deployment
 
 ```
+git clone https://github.com/Shane091490/personal-journal.git
 cp .env.example .env   # edit POSTGRES_PASSWORD and JWT_SECRET, or keep the generated .env as-is
 docker compose up --build
 ```
