@@ -25,10 +25,10 @@ Visit http://localhost:8081 (or whatever `WEB_PORT` you set). The first account 
 ## Features
 
 Core journaling
-    • Free-form entries — write, edit, and delete plain-text journal entries, each timestamped.
-    • Backdated entries — select a past day on the calendar and add an entry for that day instead of "now."
-    • Calendar navigation — a month calendar marks which days have entries; click a day to filter the entry list to it. 
-    • Keyword search — search-as-you-type across all your entries, with result snippets; clicking a result jumps to that entry's date.
+    Free-form entries — write, edit, and delete plain-text journal entries, each timestamped.
+    Backdated entries — select a past day on the calendar and add an entry for that day instead of "now."
+    Calendar navigation — a month calendar marks which days have entries; click a day to filter the entry list to it. 
+    Keyword search — search-as-you-type across all your entries, with result snippets; clicking a result jumps to that entry's date.
 Data ownership
     • Export — download all your entries as a JSON file.
     • Import — upload a JSON file to replace your current entries, gated behind a confirmation step warning it's destructive.
