@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-journal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-journal}
+      POSTGRES_DB: ${POSTGRES_DB:-journal}
+    volumes:
+      - journal_db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-journal}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: ./server
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-journal}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-journal}
+      PGDATABASE: ${POSTGRES_DB:-journal}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      PORT: 3000
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - app
+
+volumes:
+  journal_db_data:
