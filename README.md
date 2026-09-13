@@ -41,9 +41,9 @@ Accounts & access
     • Admin user management — admins can view all users (with entry counts and join dates), promote/demote admin status, reset any user's password, and delete accounts — with safeguards preventing an admin from demoting, deleting, or otherwise acting on their own account.
 UI/UX
 
-    • Light/dark theme toggle — persisted across sessions via localStorage.
-    • Mobile-friendly responsive layout.
-    • PWA support — installable to home screen/desktop.
+    • Light/dark theme toggle
+    • Mobile-friendly responsive layout
+    • PWA support — installable to home screen/desktop
 Infrastructure
 
     • Dockerized stack — Nginx (serves the built frontend + reverse-proxies /api), Node/Express API, and PostgreSQL.
