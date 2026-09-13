@@ -4,9 +4,9 @@ A mobile-friendly text journal: write free-form entries, search past entries by 
 
 ## Stack
 
-- **web** — Nginx, serves the built React (Vite) frontend and reverse-proxies `/api` to the app container.
-- **app** — Node.js/Express API, cookie-based JWT auth.
-- **db** — PostgreSQL, schema created automatically from `db/init.sql` on first boot.
+- **web** — Nginx
+- **app** — Node.js/Express API
+- **db** — PostgreSQL
 
 ## Running
 
