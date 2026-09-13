@@ -22,7 +22,24 @@ docker compose up --build
 
 Visit http://localhost:8081 (or whatever `WEB_PORT` you set). The first account you register becomes the admin account.
 
-## Data
+## Features
 
-- **Export**: sidebar → Data → Export JSON, downloads all of your entries.
-- **Import**: sidebar → Data → Import JSON. This *replaces* your existing entries after a confirmation step.
+Core journaling
+    • Free-form entries — write, edit, and delete plain-text journal entries, each timestamped.
+    • Backdated entries — select a past day on the calendar and add an entry for that day instead of "now."
+    • Calendar navigation — a month calendar marks which days have entries; click a day to filter the entry list to it. 
+    • Keyword search — search-as-you-type across all your entries, with result snippets; clicking a result jumps to that entry's date.
+Data ownership
+    • Export — download all your entries as a JSON file.
+    • Import — upload a JSON file to replace your current entries, gated behind a confirmation step warning it's destructive.
+Accounts & access
+    • Registration/login — username + password auth (bcrypt-hashed), session held via an HTTP-only JWT cookie.
+    • First-user-is-admin — the very first account registered on a fresh instance automatically becomes admin.
+    • Admin user management — admins can view all users (with entry counts and join dates), promote/demote admin status, reset any user's password, and delete accounts — with safeguards preventing an admin from demoting, deleting, or otherwise acting on their own account.
+UI/UX
+    • Light/dark theme toggle — persisted across sessions via localStorage.
+    • Mobile-friendly responsive layout.
+    • PWA support — installable to home screen/desktop.
+Infrastructure
+    • Dockerized stack — Nginx (serves the built frontend + reverse-proxies /api), Node/Express API, and PostgreSQL.
+
