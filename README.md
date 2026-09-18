@@ -24,32 +24,42 @@ Visit http://localhost:8081 (or whatever `WEB_PORT` you set). The first account 
 
 ## Features
 
-Core journaling
+## Core journaling 
 
-    • Rich text entries — write, edit, and delete entries with formatting (bold/italic/underline/strike, headings, lists, blockquotes, links), each timestamped.
-    • Photo attachments — attach up to 4 photos per entry; they're rendered below the entry text.
-    • Backdated entries — select a past day on the calendar and add an entry for that day instead of "now."
-    • Calendar navigation — a month calendar marks which days have entries; click a day to filter the entry list to it.
-    • Keyword search — search-as-you-type across all your entries, with result snippets; clicking a result jumps to that entry's date.
+Rich text entries — write, edit, and delete entries with formatting (bold/italic/underline/strike, headings, lists, blockquotes, links), each timestamped.
 
-Data ownership
+Photo attachments — attach up to 4 photos per entry; they're rendered below the entry text.
 
-    • Export — download all your entries (including photos, embedded as base64) as a single JSON file.
-    • Import — upload a JSON file to replace your current entries and photos, gated behind a confirmation step warning it's destructive.
+Backdated entries — select a past day on the calendar and add an entry for that day instead of "now."
 
-Accounts & access
+Calendar navigation — a month calendar marks which days have entries; click a day to filter the entry list to it.
 
-    • Registration/login — email + password auth (bcrypt-hashed), session held via an HTTP-only JWT cookie.
-    • First-user-is-admin — the very first account registered on a fresh instance automatically becomes admin, and registration is then disabled until an admin re-enables it.
-    • Single sign-on (OIDC) — optionally authenticate against any standards-compliant OpenID Connect provider (Google, Okta, Auth0, Keycloak, Authentik, etc.) alongside the built-in login. Configured entirely from the UI (admin → SSO settings) and stored in the database — no environment variables to set. The client secret is encrypted at rest.
-    • Admin user management — admins can view all users (with entry counts and join dates), create accounts directly, promote/demote admin status, reset any user's password, toggle registration on/off, and delete accounts — with safeguards preventing an admin from demoting, deleting, or otherwise acting on their own account.
+Keyword search — search-as-you-type across all your entries, with result snippets; clicking a result jumps to that entry's date.
 
-UI/UX
+## Data ownership
 
-    • Light/dark theme toggle
-    • Mobile-friendly responsive layout
-    • PWA support — installable to home screen/desktop
+Export — download all your entries (including photos, embedded as base64) as a single JSON file.
 
-Infrastructure
+Import — upload a JSON file to replace your current entries and photos, gated behind a confirmation step warning it's destructive.
 
-    • Dockerized stack — Nginx (serves the built frontend, reverse-proxies /api, and serves uploaded photos), Node/Express API, and PostgreSQL.
+## Accounts & access
+
+Registration/login — email + password auth (bcrypt-hashed), session held via an HTTP-only JWT cookie.
+    
+First-user-is-admin — the very first account registered on a fresh instance automatically becomes admin, and registration is then disabled until an admin re-enables it.
+
+Single sign-on (OIDC) — optionally authenticate against any standards-compliant OpenID Connect provider (Google, Okta, Auth0, Keycloak, Authentik, etc.) alongside the built-in login. Configured entirely from the UI (admin → SSO settings) and stored in the database — no environment variables to set. The client secret is encrypted at rest.
+
+Admin user management — admins can view all users (with entry counts and join dates), create accounts directly, promote/demote admin status, reset any user's password, toggle registration on/off, and delete accounts — with safeguards preventing an admin from demoting, deleting, or otherwise acting on their own account.
+
+## UI/UX
+
+Light/dark theme toggle
+
+Mobile-friendly responsive layout
+
+PWA support — installable to home screen/desktop
+
+## Infrastructure
+
+Dockerized stack — Nginx (serves the built frontend, reverse-proxies /api, and serves uploaded photos), Node/Express API, and PostgreSQL.
