@@ -8,8 +8,25 @@ import SearchBox from "./components/SearchBox.jsx";
 import JournalEntryCard from "./components/JournalEntryCard.jsx";
 import EntryFormModal from "./components/EntryFormModal.jsx";
 import ConfirmModal from "./components/ConfirmModal.jsx";
-import SettingsModal from "./components/SettingsModal.jsx";
-import UserManagementModal from "./components/UserManagementModal.jsx";
+import SettingsPage from "./components/SettingsPage.jsx";
+import UserManagementPage from "./components/UserManagementPage.jsx";
+import OidcSettingsPage from "./components/OidcSettingsPage.jsx";
+
+const PATH_VIEW = {
+  "/settings": "settings",
+  "/settings/users": "user-management",
+  "/settings/sso": "sso-settings",
+};
+
+function viewForPath(pathname) {
+  return PATH_VIEW[pathname] || "journal";
+}
+
+const PAGE_META = {
+  settings: { title: "Settings", backLabel: "Back to journal" },
+  "user-management": { title: "User management", backLabel: "Back to settings" },
+  "sso-settings": { title: "SSO settings", backLabel: "Back to settings" },
+};
 
 function todayKey() {
   const d = new Date();
@@ -43,9 +60,38 @@ export default function App() {
   const [showNewEntry, setShowNewEntry] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [deletingEntry, setDeletingEntry] = useState(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showUserManagement, setShowUserManagement] = useState(false);
   const [pendingImport, setPendingImport] = useState(null);
+
+  const [view, setView] = useState(() => viewForPath(window.location.pathname));
+
+  useEffect(() => {
+    function onPopState() {
+      setView(viewForPath(window.location.pathname));
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  function navigate(path, viewName) {
+    window.history.pushState({}, "", path);
+    setView(viewName);
+  }
+
+  const navigateToJournal = () => navigate("/", "journal");
+  const navigateToSettings = () => navigate("/settings", "settings");
+  const navigateToUserManagement = () => navigate("/settings/users", "user-management");
+  const navigateToOidcSettings = () => navigate("/settings/sso", "sso-settings");
+
+  function navigateBack() {
+    if (view === "settings") navigateToJournal();
+    else navigateToSettings();
+  }
+
+  useEffect(() => {
+    if ((view === "user-management" || view === "sso-settings") && user && !user.is_admin) {
+      navigateToSettings();
+    }
+  }, [view, user]);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -81,15 +127,25 @@ export default function App() {
 
   async function handleCreateEntry(body) {
     const backdated = selectedDate && selectedDate !== todayKey();
-    await api.createEntry(body, backdated ? timestampForDateKey(selectedDate) : undefined);
+    const res = await api.createEntry(body, backdated ? timestampForDateKey(selectedDate) : undefined);
     loadEntries();
     bumpRefresh();
     showToast(backdated ? `Entry added for ${formatDateLabel(selectedDate)}` : "Entry saved");
+    return res.entry;
   }
 
   async function handleEditEntry(entry, body) {
-    await api.updateEntry(entry.id, body);
+    const res = await api.updateEntry(entry.id, body);
     loadEntries();
+    return res.entry;
+  }
+
+  async function handleUploadPhotos(entryId, files) {
+    await api.uploadEntryPhotos(entryId, files);
+  }
+
+  async function handleDeletePhoto(entryId, photoId) {
+    await api.deleteEntryPhoto(entryId, photoId);
   }
 
   async function handleDeleteEntry(entry) {
@@ -106,9 +162,9 @@ export default function App() {
     setShowNewEntry(false);
     setEditingEntry(null);
     setDeletingEntry(null);
-    setShowSettings(false);
-    setShowUserManagement(false);
     setPendingImport(null);
+    window.history.pushState({}, "", "/");
+    setView("journal");
   }
 
   function handleImportFile(e) {
@@ -119,7 +175,6 @@ export default function App() {
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result);
-        setShowSettings(false);
         setPendingImport(data);
       } catch {
         showToast("That file isn't valid JSON");
@@ -132,7 +187,10 @@ export default function App() {
     const res = await api.importData(pendingImport);
     loadEntries();
     bumpRefresh();
-    showToast(`Imported ${res.imported.entries} entries`);
+    const photoCount = res.imported.photos || 0;
+    showToast(
+      `Imported ${res.imported.entries} entries${photoCount ? ` and ${photoCount} photos` : ""}`
+    );
   }
 
   if (user === undefined) return null;
@@ -143,53 +201,77 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <h1 className="app-title serif">Personal Journal</h1>
+        {view === "journal" ? (
+          <h1 className="app-title serif">Personal Journal</h1>
+        ) : (
+          <div className="header-nav">
+            <button className="back-btn" onClick={navigateBack} aria-label={PAGE_META[view].backLabel} title={PAGE_META[view].backLabel}>
+              ←
+            </button>
+            <h1 className="app-title serif header-page-title">{PAGE_META[view].title}</h1>
+          </div>
+        )}
         <div className="header-search">
           <SearchBox onSelectDate={setSelectedDate} />
         </div>
         <div className="header-right">
           <ThemeToggle theme={theme} onToggle={() => setTheme((t) => (t === "light" ? "dark" : "light"))} />
-          <UserMenu
-            user={user}
-            onOpenSettings={() => setShowSettings(true)}
-            onOpenUserManagement={() => setShowUserManagement(true)}
-            onLogout={handleLogout}
-          />
+          <UserMenu user={user} onOpenSettings={navigateToSettings} onLogout={handleLogout} />
         </div>
       </header>
 
-      <aside className="sidebar">
-        <MiniCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} refreshKey={refreshKey} />
-      </aside>
+      {view !== "journal" ? (
+        <main className="main-content main-content--page">
+          {view === "settings" && (
+            <SettingsPage
+              user={user}
+              onExport={downloadExport}
+              onImportFile={handleImportFile}
+              onNavigateUserManagement={navigateToUserManagement}
+              onNavigateOidcSettings={navigateToOidcSettings}
+            />
+          )}
+          {view === "user-management" && <UserManagementPage currentUserId={user.id} onToast={showToast} />}
+          {view === "sso-settings" && <OidcSettingsPage />}
+        </main>
+      ) : (
+        <>
+          <aside className="sidebar">
+            <MiniCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} refreshKey={refreshKey} />
+          </aside>
 
-      <main className="main-content">
-        {selectedDate && (
-          <div className="day-banner">
-            <span>
-              Entries for <strong>{formatDateLabel(selectedDate)}</strong>
-            </span>
-            <button className="btn btn-ghost btn-sm" onClick={() => setSelectedDate(null)}>
-              Clear
-            </button>
-          </div>
-        )}
+          <main className="main-content">
+            {selectedDate && (
+              <div className="day-banner">
+                <span>
+                  Entries for <strong>{formatDateLabel(selectedDate)}</strong>
+                </span>
+                <button className="btn btn-ghost btn-sm" onClick={() => setSelectedDate(null)}>
+                  Clear
+                </button>
+              </div>
+            )}
 
-        {entries.length === 0 ? (
-          <div className="empty-state">
-            {selectedDate ? "Nothing written this day yet." : "No entries yet. Tap + to write one."}
-          </div>
-        ) : (
-          <div className="entry-list">
-            {entries.map((entry) => (
-              <JournalEntryCard key={entry.id} entry={entry} onEdit={setEditingEntry} onDelete={setDeletingEntry} />
-            ))}
-          </div>
-        )}
-      </main>
+            {entries.length === 0 ? (
+              <div className="empty-state">
+                {selectedDate ? "Nothing written this day yet." : "No entries yet. Tap + to write one."}
+              </div>
+            ) : (
+              <div className="entry-list">
+                {entries.map((entry) => (
+                  <JournalEntryCard key={entry.id} entry={entry} onEdit={setEditingEntry} onDelete={setDeletingEntry} />
+                ))}
+              </div>
+            )}
+          </main>
+        </>
+      )}
 
-      <button className="fab" onClick={() => setShowNewEntry(true)} aria-label="New entry" title="New entry">
-        +
-      </button>
+      {view === "journal" && (
+        <button className="fab" onClick={() => setShowNewEntry(true)} aria-label="New entry" title="New entry">
+          +
+        </button>
+      )}
 
       {showNewEntry && (
         <EntryFormModal
@@ -197,6 +279,9 @@ export default function App() {
           placeholder={isToday ? "What's on your mind?" : `Write an entry for ${formatDateLabel(selectedDate)}…`}
           saveLabel={isToday ? "Save entry" : "Add entry"}
           onSave={handleCreateEntry}
+          onUploadPhotos={handleUploadPhotos}
+          onDeletePhoto={handleDeletePhoto}
+          onPhotosChanged={loadEntries}
           onClose={() => setShowNewEntry(false)}
         />
       )}
@@ -204,8 +289,11 @@ export default function App() {
       {editingEntry && (
         <EntryFormModal
           title="Edit entry"
-          initialBody={editingEntry.body}
+          entry={editingEntry}
           onSave={(body) => handleEditEntry(editingEntry, body)}
+          onUploadPhotos={handleUploadPhotos}
+          onDeletePhoto={handleDeletePhoto}
+          onPhotosChanged={loadEntries}
           onClose={() => setEditingEntry(null)}
         />
       )}
@@ -218,18 +306,6 @@ export default function App() {
           danger
           onConfirm={() => handleDeleteEntry(deletingEntry)}
           onClose={() => setDeletingEntry(null)}
-        />
-      )}
-
-      {showSettings && (
-        <SettingsModal onExport={downloadExport} onImportFile={handleImportFile} onClose={() => setShowSettings(false)} />
-      )}
-
-      {showUserManagement && (
-        <UserManagementModal
-          currentUserId={user.id}
-          onToast={showToast}
-          onClose={() => setShowUserManagement(false)}
         />
       )}
 

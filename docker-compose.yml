@@ -27,6 +27,9 @@ services:
       PGDATABASE: ${POSTGRES_DB:-journal}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
       PORT: 3000
+      UPLOADS_DIR: /app/uploads
+    volumes:
+      - journal_uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -38,8 +41,11 @@ services:
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-8080}:80"
+    volumes:
+      - journal_uploads:/uploads:ro
     depends_on:
       - app
 
 volumes:
   journal_db_data:
+  journal_uploads:

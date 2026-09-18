@@ -23,7 +23,16 @@ export default function JournalEntryCard({ entry, onEdit, onDelete }) {
           </button>
         </div>
       </div>
-      <p className="entry-body">{entry.body}</p>
+      <div className="entry-body" dangerouslySetInnerHTML={{ __html: entry.body }} />
+      {entry.photos && entry.photos.length > 0 && (
+        <div className="entry-photos">
+          {entry.photos.map((photo) => (
+            <a key={photo.id} className="entry-photo" href={photo.url} target="_blank" rel="noreferrer">
+              <img src={photo.url} alt="" loading="lazy" />
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

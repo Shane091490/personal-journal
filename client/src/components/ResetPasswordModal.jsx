@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Modal from "./Modal.jsx";
 
-export default function ResetPasswordModal({ username, onSave, onClose }) {
+export default function ResetPasswordModal({ label, onSave, onClose }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -21,7 +21,7 @@ export default function ResetPasswordModal({ username, onSave, onClose }) {
   }
 
   return (
-    <Modal title={`Reset password for ${username}`} onClose={onClose}>
+    <Modal title={`Reset password for ${label}`} onClose={onClose}>
       <form onSubmit={submit}>
         <div className="field">
           <label htmlFor="reset-password">New password</label>

@@ -5,11 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const COOKIE_NAME = "journal_token";
 
 export function signToken(user) {
-  return jwt.sign(
-    { id: user.id, username: user.username, is_admin: user.is_admin },
-    JWT_SECRET,
-    { expiresIn: "30d" }
-  );
+  return jwt.sign({ id: user.id, email: user.email, is_admin: user.is_admin }, JWT_SECRET, { expiresIn: "30d" });
 }
 
 export function setAuthCookie(res, user) {
@@ -35,7 +31,10 @@ export async function requireAuth(req, res, next) {
     return res.status(401).json({ error: "Invalid session" });
   }
 
-  const { rows } = await pool.query("SELECT id, username, is_admin FROM users WHERE id = $1", [claims.id]);
+  const { rows } = await pool.query(
+    "SELECT id, email, first_name, last_name, is_admin FROM users WHERE id = $1",
+    [claims.id]
+  );
   if (!rows[0]) {
     clearAuthCookie(res);
     return res.status(401).json({ error: "Your account no longer exists. Please log in again." });

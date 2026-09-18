@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 
-function snippet(text, len = 80) {
-  const clean = text.replace(/\s+/g, " ").trim();
+function snippet(html, len = 80) {
+  const clean = html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   return clean.length > len ? clean.slice(0, len) + "…" : clean;
 }
 
