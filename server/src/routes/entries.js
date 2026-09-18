@@ -177,6 +177,16 @@ router.put("/:id/pin", async (req, res) => {
   res.json({ entry: rows[0] });
 });
 
+router.delete("/", async (req, res) => {
+  const { rows } = await pool.query(
+    "SELECT p.filename FROM entry_photos p JOIN entries e ON e.id = p.entry_id WHERE e.user_id = $1",
+    [req.user.id]
+  );
+  const { rowCount } = await pool.query("DELETE FROM entries WHERE user_id = $1", [req.user.id]);
+  rows.forEach((r) => deletePhotoFile(r.filename));
+  res.json({ deleted: rowCount });
+});
+
 router.delete("/:id", async (req, res) => {
   const { rows } = await pool.query("SELECT filename FROM entry_photos WHERE entry_id = $1", [req.params.id]);
   const { rowCount } = await pool.query("DELETE FROM entries WHERE id = $1 AND user_id = $2", [

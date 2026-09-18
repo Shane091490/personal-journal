@@ -56,6 +56,7 @@ export const api = {
     request("/entries", { method: "POST", body: { body, tags, mood, created_at: createdAt } }),
   updateEntry: (id, { body, tags, mood }) => request(`/entries/${id}`, { method: "PUT", body: { body, tags, mood } }),
   deleteEntry: (id) => request(`/entries/${id}`, { method: "DELETE" }),
+  deleteAllMyEntries: () => request("/entries", { method: "DELETE" }),
   pinEntry: (id, pinned) => request(`/entries/${id}/pin`, { method: "PUT", body: { pinned } }),
   pinnedEntries: () => request("/entries/pinned"),
   onThisDay: (date) => request(`/entries/on-this-day?date=${date}`),
@@ -76,6 +77,7 @@ export const api = {
   setUserAdmin: (id, isAdmin) => request(`/admin/users/${id}`, { method: "PUT", body: { is_admin: isAdmin } }),
   resetUserPassword: (id, password) => request(`/admin/users/${id}/reset-password`, { method: "POST", body: { password } }),
   deleteUser: (id) => request(`/admin/users/${id}`, { method: "DELETE" }),
+  deleteAllEntriesEverywhere: () => request("/admin/entries", { method: "DELETE" }),
 
   getAppSettings: () => request("/admin/app-settings"),
   saveAppSettings: (settings) => request("/admin/app-settings", { method: "PUT", body: settings }),

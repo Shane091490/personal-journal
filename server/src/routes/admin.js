@@ -4,6 +4,7 @@ import { pool, getAppSettings } from "../db.js";
 import { requireAuth, requireAdmin } from "../auth.js";
 import { getPublicSettings, saveSettings } from "../oidc.js";
 import { validateNewUserFields } from "../validation.js";
+import { deletePhotoFile } from "../uploads.js";
 
 const router = Router();
 router.use(requireAuth, requireAdmin);
@@ -120,6 +121,13 @@ router.delete("/users/:id", async (req, res) => {
   const { rowCount } = await pool.query("DELETE FROM users WHERE id = $1", [targetId]);
   if (!rowCount) return res.status(404).json({ error: "User not found" });
   res.status(204).end();
+});
+
+router.delete("/entries", async (req, res) => {
+  const { rows } = await pool.query("SELECT filename FROM entry_photos");
+  const { rowCount } = await pool.query("DELETE FROM entries");
+  rows.forEach((r) => deletePhotoFile(r.filename));
+  res.json({ deleted: rowCount });
 });
 
 export default router;

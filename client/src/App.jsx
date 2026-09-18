@@ -65,6 +65,8 @@ export default function App() {
   const [editingEntry, setEditingEntry] = useState(null);
   const [deletingEntry, setDeletingEntry] = useState(null);
   const [pendingImport, setPendingImport] = useState(null);
+  const [confirmDeleteMine, setConfirmDeleteMine] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
 
   const [view, setView] = useState(() => viewForPath(window.location.pathname));
 
@@ -203,6 +205,20 @@ export default function App() {
     bumpRefresh();
   }
 
+  async function handleDeleteAllMyEntries() {
+    const res = await api.deleteAllMyEntries();
+    refreshEntryLists();
+    bumpRefresh();
+    showToast(`Deleted ${res.deleted} ${res.deleted === 1 ? "entry" : "entries"}`);
+  }
+
+  async function handleDeleteAllEntriesEverywhere() {
+    const res = await api.deleteAllEntriesEverywhere();
+    refreshEntryLists();
+    bumpRefresh();
+    showToast(`Deleted ${res.deleted} ${res.deleted === 1 ? "entry" : "entries"} across all accounts`);
+  }
+
   async function handleLogout() {
     await api.logout();
     setUser(null);
@@ -215,6 +231,8 @@ export default function App() {
     setEditingEntry(null);
     setDeletingEntry(null);
     setPendingImport(null);
+    setConfirmDeleteMine(false);
+    setConfirmDeleteAll(false);
     window.history.pushState({}, "", "/");
     setView("journal");
   }
@@ -293,6 +311,8 @@ export default function App() {
               onImportFile={handleImportFile}
               onNavigateUserManagement={navigateToUserManagement}
               onNavigateOidcSettings={navigateToOidcSettings}
+              onDeleteMyEntries={() => setConfirmDeleteMine(true)}
+              onDeleteAllEntries={() => setConfirmDeleteAll(true)}
             />
           )}
           {view === "user-management" && <UserManagementPage currentUserId={user.id} onToast={showToast} />}
@@ -442,6 +462,31 @@ export default function App() {
           danger
           onConfirm={confirmImport}
           onClose={() => setPendingImport(null)}
+        />
+      )}
+
+      {confirmDeleteMine && (
+        <ConfirmModal
+          title="Delete all my entries"
+          message="Permanently delete every journal entry (and any attached photos) in your account."
+          warning="This cannot be undone. It does not affect other users' entries."
+          confirmLabel="Delete all my entries"
+          danger
+          onConfirm={handleDeleteAllMyEntries}
+          onClose={() => setConfirmDeleteMine(false)}
+        />
+      )}
+
+      {confirmDeleteAll && (
+        <ConfirmModal
+          title="Delete all entries (all users)"
+          message="Permanently delete every journal entry and photo for every user in this application."
+          warning="This cannot be undone and affects every account, not just yours."
+          confirmLabel="Delete everything"
+          danger
+          requireTypedPhrase="DELETE ALL"
+          onConfirm={handleDeleteAllEntriesEverywhere}
+          onClose={() => setConfirmDeleteAll(false)}
         />
       )}
 

@@ -1,6 +1,14 @@
 import { useRef } from "react";
 
-export default function SettingsPage({ user, onExport, onImportFile, onNavigateUserManagement, onNavigateOidcSettings }) {
+export default function SettingsPage({
+  user,
+  onExport,
+  onImportFile,
+  onNavigateUserManagement,
+  onNavigateOidcSettings,
+  onDeleteMyEntries,
+  onDeleteAllEntries,
+}) {
   const fileInputRef = useRef(null);
 
   return (
@@ -39,6 +47,20 @@ export default function SettingsPage({ user, onExport, onImportFile, onNavigateU
           </div>
         </section>
       )}
+
+      <section className="settings-section">
+        <h3>Danger zone</h3>
+        <div className="sidebar-actions">
+          <button className="btn btn-danger" onClick={onDeleteMyEntries}>
+            Delete all my entries
+          </button>
+          {user.is_admin && (
+            <button className="btn btn-danger" onClick={onDeleteAllEntries}>
+              Delete all entries (all users)
+            </button>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
