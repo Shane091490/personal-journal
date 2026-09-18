@@ -15,11 +15,16 @@ CREATE TABLE entries (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   body TEXT NOT NULL,
   body_format TEXT NOT NULL DEFAULT 'html',
+  tags TEXT[] NOT NULL DEFAULT '{}',
+  mood TEXT,
+  pinned BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_entries_user_created ON entries(user_id, created_at);
+CREATE INDEX idx_entries_tags ON entries USING GIN (tags);
+CREATE INDEX idx_entries_pinned ON entries(user_id) WHERE pinned = true;
 
 CREATE TABLE entry_photos (
   id SERIAL PRIMARY KEY,

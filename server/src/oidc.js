@@ -98,6 +98,15 @@ export async function saveSettings({ enabled, providerName, issuerUrl, clientId,
   const existing = cachedSettings || (await loadSettings());
   const secretEnc = clientSecret ? encryptSecret(clientSecret) : existing?.client_secret_enc || null;
 
+  // Fields left unspecified fall back to the previously saved value rather than being
+  // wiped, so a minimal call (e.g. just toggling `enabled`) can't silently destroy config.
+  const nextProviderName = providerName !== undefined ? (providerName || "SSO").trim() : existing?.provider_name || "SSO";
+  const nextIssuerUrl = issuerUrl !== undefined ? (issuerUrl || "").trim() || null : existing?.issuer_url || null;
+  const nextClientId = clientId !== undefined ? (clientId || "").trim() || null : existing?.client_id || null;
+  const nextRedirectUri = redirectUri !== undefined ? (redirectUri || "").trim() || null : existing?.redirect_uri || null;
+  const nextScopes =
+    scopes !== undefined ? (scopes || "openid email profile").trim() : existing?.scopes || "openid email profile";
+
   const { rows } = await pool.query(
     `INSERT INTO oidc_settings (id, enabled, provider_name, issuer_url, client_id, client_secret_enc, redirect_uri, scopes, updated_at)
      VALUES (1, $1, $2, $3, $4, $5, $6, $7, now())
@@ -111,15 +120,7 @@ export async function saveSettings({ enabled, providerName, issuerUrl, clientId,
        scopes = EXCLUDED.scopes,
        updated_at = now()
      RETURNING *`,
-    [
-      !!enabled,
-      (providerName || "SSO").trim(),
-      (issuerUrl || "").trim() || null,
-      (clientId || "").trim() || null,
-      secretEnc,
-      (redirectUri || "").trim() || null,
-      (scopes || "openid email profile").trim(),
-    ]
+    [!!enabled, nextProviderName, nextIssuerUrl, nextClientId, secretEnc, nextRedirectUri, nextScopes]
   );
   cachedSettings = rows[0];
   return reinitClient();

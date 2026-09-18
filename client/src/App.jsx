@@ -11,6 +11,7 @@ import ConfirmModal from "./components/ConfirmModal.jsx";
 import SettingsPage from "./components/SettingsPage.jsx";
 import UserManagementPage from "./components/UserManagementPage.jsx";
 import OidcSettingsPage from "./components/OidcSettingsPage.jsx";
+import StatsWidget from "./components/StatsWidget.jsx";
 
 const PATH_VIEW = {
   "/settings": "settings",
@@ -53,7 +54,10 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem("journal-theme") || "light");
 
   const [entries, setEntries] = useState([]);
+  const [pinnedEntries, setPinnedEntries] = useState([]);
+  const [onThisDayEntries, setOnThisDayEntries] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [tagFilter, setTagFilter] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [toast, setToast] = useState("");
 
@@ -106,7 +110,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (user) loadEntries();
+    if (!user) return;
+    loadEntries();
+    loadPinned();
+  }, [user, selectedDate, tagFilter, refreshKey]);
+
+  useEffect(() => {
+    if (!user) return;
+    loadOnThisDay();
   }, [user, selectedDate, refreshKey]);
 
   function showToast(msg) {
@@ -116,27 +127,51 @@ export default function App() {
 
   function loadEntries() {
     api
-      .listEntries(selectedDate)
+      .listEntries(selectedDate, tagFilter)
       .then((res) => setEntries(res.entries))
       .catch(() => {});
+  }
+
+  function loadPinned() {
+    if (selectedDate || tagFilter) {
+      setPinnedEntries([]);
+      return;
+    }
+    api
+      .pinnedEntries()
+      .then((res) => setPinnedEntries(res.entries))
+      .catch(() => {});
+  }
+
+  function loadOnThisDay() {
+    api
+      .onThisDay(selectedDate || todayKey())
+      .then((res) => setOnThisDayEntries(res.entries))
+      .catch(() => {});
+  }
+
+  function refreshEntryLists() {
+    loadEntries();
+    loadPinned();
+    loadOnThisDay();
   }
 
   function bumpRefresh() {
     setRefreshKey((k) => k + 1);
   }
 
-  async function handleCreateEntry(body) {
+  async function handleCreateEntry(payload) {
     const backdated = selectedDate && selectedDate !== todayKey();
-    const res = await api.createEntry(body, backdated ? timestampForDateKey(selectedDate) : undefined);
-    loadEntries();
+    const res = await api.createEntry(payload, backdated ? timestampForDateKey(selectedDate) : undefined);
+    refreshEntryLists();
     bumpRefresh();
     showToast(backdated ? `Entry added for ${formatDateLabel(selectedDate)}` : "Entry saved");
     return res.entry;
   }
 
-  async function handleEditEntry(entry, body) {
-    const res = await api.updateEntry(entry.id, body);
-    loadEntries();
+  async function handleEditEntry(entry, payload) {
+    const res = await api.updateEntry(entry.id, payload);
+    refreshEntryLists();
     return res.entry;
   }
 
@@ -148,9 +183,23 @@ export default function App() {
     await api.deleteEntryPhoto(entryId, photoId);
   }
 
+  async function handleReorderPhotos(entryId, order) {
+    await api.reorderEntryPhotos(entryId, order);
+  }
+
+  async function handleTogglePin(entry) {
+    await api.pinEntry(entry.id, !entry.pinned);
+    refreshEntryLists();
+  }
+
+  function handleTagClick(tag) {
+    setSelectedDate(null);
+    setTagFilter(tag);
+  }
+
   async function handleDeleteEntry(entry) {
     await api.deleteEntry(entry.id);
-    loadEntries();
+    refreshEntryLists();
     bumpRefresh();
   }
 
@@ -158,7 +207,10 @@ export default function App() {
     await api.logout();
     setUser(null);
     setEntries([]);
+    setPinnedEntries([]);
+    setOnThisDayEntries([]);
     setSelectedDate(null);
+    setTagFilter(null);
     setShowNewEntry(false);
     setEditingEntry(null);
     setDeletingEntry(null);
@@ -185,7 +237,7 @@ export default function App() {
 
   async function confirmImport() {
     const res = await api.importData(pendingImport);
-    loadEntries();
+    refreshEntryLists();
     bumpRefresh();
     const photoCount = res.imported.photos || 0;
     showToast(
@@ -197,6 +249,10 @@ export default function App() {
   if (!user) return <AuthScreen onAuthed={setUser} />;
 
   const isToday = !selectedDate || selectedDate === todayKey();
+  const showPinnedSection = !selectedDate && !tagFilter && pinnedEntries.length > 0;
+  const showOnThisDay = !tagFilter && onThisDayEntries.length > 0;
+  const mainEntries = !selectedDate && !tagFilter ? entries.filter((e) => !e.pinned) : entries;
+  const showEmptyState = mainEntries.length === 0 && !showPinnedSection && !showOnThisDay;
 
   return (
     <div className="app-shell">
@@ -237,6 +293,7 @@ export default function App() {
       ) : (
         <>
           <aside className="sidebar">
+            <StatsWidget refreshKey={refreshKey} />
             <MiniCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} refreshKey={refreshKey} />
           </aside>
 
@@ -252,16 +309,73 @@ export default function App() {
               </div>
             )}
 
-            {entries.length === 0 ? (
+            {tagFilter && (
+              <div className="day-banner">
+                <span>
+                  Tagged <strong>#{tagFilter}</strong>
+                </span>
+                <button className="btn btn-ghost btn-sm" onClick={() => setTagFilter(null)}>
+                  Clear
+                </button>
+              </div>
+            )}
+
+            {showOnThisDay && (
+              <section className="entry-section">
+                <h2 className="section-heading">On this day</h2>
+                <div className="entry-list">
+                  {onThisDayEntries.map((entry) => (
+                    <JournalEntryCard
+                      key={`otd-${entry.id}`}
+                      entry={entry}
+                      showYear
+                      onEdit={setEditingEntry}
+                      onDelete={setDeletingEntry}
+                      onTogglePin={handleTogglePin}
+                      onTagClick={handleTagClick}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {showPinnedSection && (
+              <section className="entry-section">
+                <h2 className="section-heading">📌 Pinned</h2>
+                <div className="entry-list">
+                  {pinnedEntries.map((entry) => (
+                    <JournalEntryCard
+                      key={`pin-${entry.id}`}
+                      entry={entry}
+                      onEdit={setEditingEntry}
+                      onDelete={setDeletingEntry}
+                      onTogglePin={handleTogglePin}
+                      onTagClick={handleTagClick}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {showEmptyState ? (
               <div className="empty-state">
-                {selectedDate ? "Nothing written this day yet." : "No entries yet. Tap + to write one."}
+                {selectedDate || tagFilter ? "Nothing here yet." : "No entries yet. Tap + to write one."}
               </div>
             ) : (
-              <div className="entry-list">
-                {entries.map((entry) => (
-                  <JournalEntryCard key={entry.id} entry={entry} onEdit={setEditingEntry} onDelete={setDeletingEntry} />
-                ))}
-              </div>
+              mainEntries.length > 0 && (
+                <div className="entry-list">
+                  {mainEntries.map((entry) => (
+                    <JournalEntryCard
+                      key={entry.id}
+                      entry={entry}
+                      onEdit={setEditingEntry}
+                      onDelete={setDeletingEntry}
+                      onTogglePin={handleTogglePin}
+                      onTagClick={handleTagClick}
+                    />
+                  ))}
+                </div>
+              )
             )}
           </main>
         </>
@@ -281,7 +395,8 @@ export default function App() {
           onSave={handleCreateEntry}
           onUploadPhotos={handleUploadPhotos}
           onDeletePhoto={handleDeletePhoto}
-          onPhotosChanged={loadEntries}
+          onReorderPhotos={handleReorderPhotos}
+          onPhotosChanged={refreshEntryLists}
           onClose={() => setShowNewEntry(false)}
         />
       )}
@@ -290,10 +405,11 @@ export default function App() {
         <EntryFormModal
           title="Edit entry"
           entry={editingEntry}
-          onSave={(body) => handleEditEntry(editingEntry, body)}
+          onSave={(payload) => handleEditEntry(editingEntry, payload)}
           onUploadPhotos={handleUploadPhotos}
           onDeletePhoto={handleDeletePhoto}
-          onPhotosChanged={loadEntries}
+          onReorderPhotos={handleReorderPhotos}
+          onPhotosChanged={refreshEntryLists}
           onClose={() => setEditingEntry(null)}
         />
       )}

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { pool } from "../db.js";
 import { requireAuth } from "../auth.js";
-import { sanitizeEntryBody, isEntryBodyEmpty } from "../sanitize.js";
+import { sanitizeEntryBody, isEntryBodyEmpty, sanitizeTags, sanitizeMood } from "../sanitize.js";
 import {
   deletePhotoFile,
   photoMimeFromFilename,
@@ -15,7 +15,7 @@ router.use(requireAuth);
 
 router.get("/export", async (req, res) => {
   const { rows: entries } = await pool.query(
-    "SELECT id, body, created_at, updated_at FROM entries WHERE user_id = $1 ORDER BY id ASC",
+    "SELECT id, body, tags, mood, pinned, created_at, updated_at FROM entries WHERE user_id = $1 ORDER BY id ASC",
     [req.user.id]
   );
 
@@ -70,8 +70,17 @@ router.post("/import", async (req, res) => {
     for (const entry of data.entries) {
       if (!entry.body || isEntryBodyEmpty(entry.body)) continue;
       const { rows } = await client.query(
-        "INSERT INTO entries (user_id, body, created_at, updated_at) VALUES ($1, $2, COALESCE($3, now()), COALESCE($4, now())) RETURNING id",
-        [req.user.id, sanitizeEntryBody(entry.body), entry.created_at || null, entry.updated_at || null]
+        `INSERT INTO entries (user_id, body, tags, mood, pinned, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, COALESCE($6, now()), COALESCE($7, now())) RETURNING id`,
+        [
+          req.user.id,
+          sanitizeEntryBody(entry.body),
+          sanitizeTags(entry.tags),
+          sanitizeMood(entry.mood),
+          entry.pinned === true,
+          entry.created_at || null,
+          entry.updated_at || null,
+        ]
       );
       const entryId = rows[0].id;
       imported += 1;

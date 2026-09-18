@@ -86,6 +86,12 @@ export async function migrate() {
     )
   `);
   await pool.query("CREATE INDEX IF NOT EXISTS idx_entry_photos_entry ON entry_photos(entry_id)");
+
+  await pool.query("ALTER TABLE entries ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}'");
+  await pool.query("ALTER TABLE entries ADD COLUMN IF NOT EXISTS mood TEXT");
+  await pool.query("ALTER TABLE entries ADD COLUMN IF NOT EXISTS pinned BOOLEAN NOT NULL DEFAULT FALSE");
+  await pool.query("CREATE INDEX IF NOT EXISTS idx_entries_tags ON entries USING GIN (tags)");
+  await pool.query("CREATE INDEX IF NOT EXISTS idx_entries_pinned ON entries(user_id) WHERE pinned = true");
 }
 
 export async function getAppSettings() {

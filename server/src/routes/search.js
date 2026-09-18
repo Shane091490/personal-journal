@@ -11,7 +11,9 @@ router.get("/", async (req, res) => {
   const like = `%${q}%`;
 
   const { rows: entries } = await pool.query(
-    "SELECT id, body, created_at FROM entries WHERE user_id = $1 AND body ILIKE $2 ORDER BY created_at DESC LIMIT 100",
+    `SELECT id, body, tags, mood, created_at FROM entries
+     WHERE user_id = $1 AND (body ILIKE $2 OR array_to_string(tags, ' ') ILIKE $2)
+     ORDER BY created_at DESC LIMIT 100`,
     [req.user.id, like]
   );
 

@@ -39,3 +39,36 @@ export function sanitizeEntryBody(html) {
   });
   return clean.replace(TRAILING_EMPTY_LINE, "");
 }
+
+const MAX_TAGS = 8;
+const MAX_TAG_LENGTH = 24;
+const MAX_MOOD_LENGTH = 4;
+
+// String#slice cuts by UTF-16 code unit and can split a surrogate pair (e.g. an
+// emoji) in half, leaving an unpaired/malformed character in stored data.
+// Array.from splits on codepoints instead, so truncation always lands on a
+// whole character.
+function truncateSafely(str, maxLength) {
+  return Array.from(str).slice(0, maxLength).join("");
+}
+
+export function sanitizeTags(input) {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const raw of input) {
+    if (typeof raw !== "string") continue;
+    const tag = truncateSafely(raw.trim().toLowerCase(), MAX_TAG_LENGTH);
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    out.push(tag);
+    if (out.length >= MAX_TAGS) break;
+  }
+  return out;
+}
+
+export function sanitizeMood(input) {
+  if (typeof input !== "string") return null;
+  const mood = truncateSafely(input.trim(), MAX_MOOD_LENGTH);
+  return mood || null;
+}

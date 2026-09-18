@@ -45,14 +45,27 @@ export const api = {
   oidcConfig: () => request("/auth/oidc/config"),
   registrationStatus: () => request("/auth/registration-status"),
 
-  listEntries: (date) => request(`/entries${date ? `?date=${date}` : ""}`),
-  createEntry: (body, createdAt) => request("/entries", { method: "POST", body: { body, created_at: createdAt } }),
-  updateEntry: (id, body) => request(`/entries/${id}`, { method: "PUT", body: { body } }),
+  listEntries: (date, tag) => {
+    const params = new URLSearchParams();
+    if (date) params.set("date", date);
+    if (tag) params.set("tag", tag);
+    const qs = params.toString();
+    return request(`/entries${qs ? `?${qs}` : ""}`);
+  },
+  createEntry: ({ body, tags, mood }, createdAt) =>
+    request("/entries", { method: "POST", body: { body, tags, mood, created_at: createdAt } }),
+  updateEntry: (id, { body, tags, mood }) => request(`/entries/${id}`, { method: "PUT", body: { body, tags, mood } }),
   deleteEntry: (id) => request(`/entries/${id}`, { method: "DELETE" }),
+  pinEntry: (id, pinned) => request(`/entries/${id}/pin`, { method: "PUT", body: { pinned } }),
+  pinnedEntries: () => request("/entries/pinned"),
+  onThisDay: (date) => request(`/entries/on-this-day?date=${date}`),
+  entryStats: () => request("/entries/stats"),
 
   calendarDays: (year, month) => request(`/entries/calendar?year=${year}&month=${month}`),
   uploadEntryPhotos: (entryId, files) => uploadPhotos(entryId, files),
   deleteEntryPhoto: (entryId, photoId) => request(`/entries/${entryId}/photos/${photoId}`, { method: "DELETE" }),
+  reorderEntryPhotos: (entryId, order) =>
+    request(`/entries/${entryId}/photos/reorder`, { method: "PUT", body: { order } }),
 
   search: (q) => request(`/search?q=${encodeURIComponent(q)}`),
 

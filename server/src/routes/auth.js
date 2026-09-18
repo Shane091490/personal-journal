@@ -1,6 +1,6 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { pool, getAppSettings } from "../db.js";
+import { pool, getAppSettings, countUsers } from "../db.js";
 import { setAuthCookie, clearAuthCookie, requireAuth } from "../auth.js";
 import { validateNewUserFields } from "../validation.js";
 
@@ -8,7 +8,10 @@ const router = Router();
 
 router.get("/registration-status", async (req, res) => {
   const settings = await getAppSettings();
-  res.json({ allowRegistration: settings.allow_registration });
+  // A brand-new/empty instance can always bootstrap its first (admin) account,
+  // regardless of the stored flag - so the UI must offer registration in that case too.
+  const isFirstUser = (await countUsers()) === 0;
+  res.json({ allowRegistration: isFirstUser || settings.allow_registration });
 });
 
 router.post("/register", async (req, res) => {
