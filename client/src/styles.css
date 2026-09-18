@@ -1481,6 +1481,65 @@ label.switch-field {
   border: 1px solid var(--border) !important;
 }
 
+.rich-text-editor .ql-emoji {
+  width: 28px;
+}
+
+.rich-text-editor .ql-emoji:before {
+  content: "🙂";
+  font-size: 16px;
+  line-height: 1;
+}
+
+.emoji-picker {
+  position: fixed;
+  z-index: 200;
+  width: 280px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(20, 18, 12, 0.18);
+  padding: 10px;
+}
+
+.emoji-picker-category {
+  margin-bottom: 8px;
+}
+
+.emoji-picker-category-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+}
+
+.emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+}
+
+.emoji-picker-item {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emoji-picker-item:hover {
+  background: var(--bg-sage);
+}
+
 .field input[type="datetime-local"] {
   font-family: var(--font-sans);
 }

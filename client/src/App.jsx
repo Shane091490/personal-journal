@@ -219,6 +219,14 @@ export default function App() {
     setView("journal");
   }
 
+  async function handleExport() {
+    try {
+      await downloadExport();
+    } catch (err) {
+      showToast(err.message || "Export failed");
+    }
+  }
+
   function handleImportFile(e) {
     const file = e.target.files[0];
     e.target.value = "";
@@ -281,7 +289,7 @@ export default function App() {
           {view === "settings" && (
             <SettingsPage
               user={user}
-              onExport={downloadExport}
+              onExport={handleExport}
               onImportFile={handleImportFile}
               onNavigateUserManagement={navigateToUserManagement}
               onNavigateOidcSettings={navigateToOidcSettings}

@@ -84,16 +84,49 @@ export const api = {
   saveOidcSettings: (settings) => request("/admin/oidc", { method: "PUT", body: settings }),
 };
 
-export async function downloadExport() {
-  const res = await fetch(BASE + "/data/export", { credentials: "include" });
-  if (!res.ok) throw new Error("Export failed");
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
+const EXPORT_FILENAME = "personal-journal-export.json";
+
+function downloadExportViaAnchor() {
+  // A direct href lets the browser's own download engine handle the request,
+  // which shows a save dialog / downloads-bar entry as soon as the request
+  // starts - fetching into a blob first would block all UI feedback until the
+  // entire (potentially large, photo-heavy) export has finished downloading.
   const a = document.createElement("a");
-  a.href = url;
-  a.download = "personal-journal-export.json";
+  a.href = BASE + "/data/export";
+  a.download = EXPORT_FILENAME;
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+}
+
+export async function downloadExport() {
+  // Browsers without the File System Access API (Firefox, Safari) can only ever
+  // download-then-save, so there's no way to show a save dialog up front there.
+  if (!window.showSaveFilePicker) {
+    return downloadExportViaAnchor();
+  }
+
+  // Ask where to save *before* fetching anything, so the picker appears instantly
+  // instead of after the (potentially large, photo-heavy) export has downloaded.
+  let handle;
+  try {
+    handle = await window.showSaveFilePicker({
+      suggestedName: EXPORT_FILENAME,
+      types: [{ description: "JSON file", accept: { "application/json": [".json"] } }],
+    });
+  } catch (err) {
+    if (err.name === "AbortError") return; // user cancelled the picker
+    throw err;
+  }
+
+  const res = await fetch(BASE + "/data/export", { credentials: "include" });
+  if (!res.ok) throw new Error("Export failed");
+
+  const writable = await handle.createWritable();
+  if (res.body) {
+    await res.body.pipeTo(writable);
+  } else {
+    await writable.write(await res.blob());
+    await writable.close();
+  }
 }
